@@ -30,8 +30,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /// Draw3D pipeline step
 void Draw3D::run(PipelineContext &context)
 {
-	if (m_target)
-		m_target->activate(context);
+	// if (m_target)
+		// m_target->activate(context);
+
+
+	TextureBuffer *buffer = pipeline->createOwned(TextureBuffer)();
+    buffer->setTexture(0, v2f(1.0f, 1.0f), "idk_lol", video::ECF_A8R8G8B8);
+    auto output = new TextureBufferOutput(buffer, 0);
+    m_target = output;
+	m_target.activate();
+
 
 	context.device->getSceneManager()->drawAll();
 	context.device->getVideoDriver()->setTransform(video::ETS_WORLD, core::IdentityMatrix);
@@ -41,6 +49,8 @@ void Draw3D::run(PipelineContext &context)
 	context.hud->drawSelectionMesh();
 	if (context.draw_wield_tool)
 		context.client->getCamera()->drawWieldedTool();
+	
+	m_target.get
 }
 
 void DrawHUD::run(PipelineContext &context)
@@ -146,7 +156,7 @@ void populatePlainPipeline(RenderPipeline *pipeline, Client *client)
 
 	step3D = addUpscaling(pipeline, step3D, downscale_factor);
 
-	step3D->setRenderTarget(pipeline->createOwned<ScreenTarget>());
+	// step3D->setRenderTarget(pipeline->createOwned<ScreenTarget>());
 
 	pipeline->addStep<DrawHUD>();
 }
