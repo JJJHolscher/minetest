@@ -112,13 +112,14 @@ class Minetest(gym.Env):
         self.socket.send(pb_action.SerializeToString())
         print("Waiting for obs...")
         byte_next_obs = self.socket.recv()
-        next_obs = np.frombuffer(byte_next_obs, dtype=np.uint8).reshape(
-            DISPLAY_SIZE[1],
-            DISPLAY_SIZE[0],
-            3,
-        )
+        # next_obs = np.frombuffer(byte_next_obs, dtype=np.uint8).reshape(
+        #     DISPLAY_SIZE[1],
+        #     DISPLAY_SIZE[0],
+        #     3,
+        # )
+        next_obs = None
         self.last_obs = next_obs
-        print("Received obs: {}".format(next_obs.shape))
+        # print("Received obs: {}".format(next_obs.shape))
         # TODO receive rewards etc.
         rew = 0.0
         done = False

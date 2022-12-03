@@ -406,10 +406,11 @@ public:
 
 	virtual void setRenderSource(RenderSource *source) override;
 	virtual void setRenderTarget(RenderTarget *target) override;
+
+	DynamicTarget m_output;
 private:
 	std::vector<RenderStep *> m_pipeline;
 	std::vector< std::unique_ptr<RenderPipelineObject> > m_objects;
 	DynamicSource m_input;
-	DynamicTarget m_output;
 	v2f scale { 1.0f, 1.0f };
 };

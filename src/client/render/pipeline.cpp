@@ -240,18 +240,53 @@ RenderTarget *RenderPipeline::getOutput()
 	return &m_output;
 }
 
+
 void RenderPipeline::run(PipelineContext &context)
 {
+	// errorstream << "check" << std::endl;
+	// buffer->reset(context);
+	// output->activate(context);
+
 	v2u32 original_size = context.target_size;
 	context.target_size = v2u32(original_size.X * scale.X, original_size.Y * scale.Y);
 
 	for (auto &object : m_objects)
 		object->reset(context);
 
-	for (auto &step: m_pipeline)
+
+	TextureBuffer *buffer = new TextureBuffer();
+    buffer->setTexture(0, 
+	context.target_size
+	// original_size
+	, "idk_lol", video::ECF_R8G8B8);
+	buffer->reset(context);
+	auto output = new TextureBufferOutput(buffer, 0);
+	setRenderTarget(output);
+
+
+	for (auto &step: m_pipeline) {
+		// if(std::dynamic_cast<ScreenTarget*>())
 		step->run(context);
+	}
 	
 	context.target_size = original_size;
+
+	auto tex = buffer->getTexture(0);
+	void* data = tex->lock(irr::video::ETLM_READ_ONLY);
+	if (data) {
+			// return;
+		auto driver = context.device->getVideoDriver();
+		irr::video::IImage* image = driver->createImageFromData(tex->getColorFormat(), tex->getSize(), data, false);
+		driver->writeImageToFile(image, "tmp.png", 99);
+		// delete driver;
+		delete image;
+	}
+	tex->unlock();
+	delete output;
+	delete buffer;
+	static int i = 0;
+	i++;
+	if(i > 50) throw std::domain_error("idk what exception should be used");
 }
 
 void RenderPipeline::setRenderSource(RenderSource *source)
