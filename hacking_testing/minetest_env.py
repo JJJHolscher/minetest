@@ -88,6 +88,7 @@ def start_minetest_client(
     client_port: int = 5555,
     cursor_img: str = "cursors/mouse_cursor_white_16x16.png",
     client_name: str = "MinetestAgent",
+    headless: bool = True
 ):
     cmd = [
         minetest_path,
@@ -108,6 +109,8 @@ def start_minetest_client(
     ]
     if cursor_img:
         cmd.extend(["--cursor-image", cursor_img])
+    if headless:
+        cmd = ["xvfb-run", "-a", "-n", "1", "-s" "-screen 0 1024x768x16"] + cmd
 
     os.makedirs(log_dir, exist_ok=True)
     stdout_file = os.path.join(log_dir, "client_stdout.log")
@@ -125,7 +128,8 @@ class Minetest(gym.Env):
         socket_port: int = 5555,
         minetest_executable: os.PathLike = None, 
         log_dir: os.PathLike = None,
-        config_path: os.PathLike = None
+        config_path: os.PathLike = None,
+        headless: bool = True
     ):
         # Define action and observation space
         self.action_space = Dict(
@@ -155,7 +159,7 @@ class Minetest(gym.Env):
         self.server_process = start_minetest_server(
             minetest_executable, config_path, log_dir, "newworld"
         )
-        self.client_process = start_minetest_client(minetest_executable, log_dir, socket_port)
+        self.client_process = start_minetest_client(minetest_executable, log_dir, socket_port, headless=headless)
 
         # Setup ZMQ
         self.socket_port = socket_port

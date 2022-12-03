@@ -38,7 +38,7 @@ build/.cmake/
 *.rej
 
 # Logs
-log/*
+log/
 
 # Protobuf
 **/*.pb.cc
