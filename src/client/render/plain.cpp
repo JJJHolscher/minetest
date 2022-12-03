@@ -30,27 +30,37 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /// Draw3D pipeline step
 void Draw3D::run(PipelineContext &context)
 {
-	// if (m_target)
-		// m_target->activate(context);
-
-
-	TextureBuffer *buffer = pipeline->createOwned(TextureBuffer)();
+	TextureBuffer *buffer = new TextureBuffer();
     buffer->setTexture(0, v2f(1.0f, 1.0f), "idk_lol", video::ECF_A8R8G8B8);
+	buffer->reset(context);
     auto output = new TextureBufferOutput(buffer, 0);
-    m_target = output;
-	m_target.activate();
-
+    // m_target = output;
+	// m_target->activate(context);
+	output->activate(context);
 
 	context.device->getSceneManager()->drawAll();
 	context.device->getVideoDriver()->setTransform(video::ETS_WORLD, core::IdentityMatrix);
-	if (!context.show_hud)
-		return;
-	context.hud->drawBlockBounds();
-	context.hud->drawSelectionMesh();
-	if (context.draw_wield_tool)
-		context.client->getCamera()->drawWieldedTool();
+	if (context.show_hud) {
+		context.hud->drawBlockBounds();
+		context.hud->drawSelectionMesh();
+		if (context.draw_wield_tool)
+			context.client->getCamera()->drawWieldedTool();
+	}
 	
-	m_target.get
+	auto tex = buffer->getTexture(0);
+
+	void* data = tex->lock(irr::video::ETLM_READ_ONLY);
+	if (data) {
+			// return;
+		auto driver = context.device->getVideoDriver();
+		irr::video::IImage* image = driver->createImageFromData(tex->getColorFormat(), tex->getSize(), data, false);
+		driver->writeImageToFile(image, "tmp.png", 99);
+		// delete driver;
+		delete image;
+	}
+	// delete data;
+	delete output;
+	delete buffer;
 }
 
 void DrawHUD::run(PipelineContext &context)
@@ -156,7 +166,7 @@ void populatePlainPipeline(RenderPipeline *pipeline, Client *client)
 
 	step3D = addUpscaling(pipeline, step3D, downscale_factor);
 
-	// step3D->setRenderTarget(pipeline->createOwned<ScreenTarget>());
+	step3D->setRenderTarget(pipeline->createOwned<ScreenTarget>());
 
 	pipeline->addStep<DrawHUD>();
 }
