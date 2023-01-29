@@ -133,5 +133,12 @@ compile_commands.json
 # Optional user provided library folder
 lib/irrlichtmt
 
+# OpenAI VPT files
+hacking_testing/vpt-minetest
+hacking_testing/videos
+*.model
+*.weights
+**/.ipynb_checkpoints/
+
 # Generated mod storage database
 client/mod_storage.sqlite
