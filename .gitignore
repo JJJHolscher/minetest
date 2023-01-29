@@ -48,6 +48,7 @@ log/*
 # Python
 **/__pycache__/
 __pycache__/
+**/.ipynb_checkpoints/
 
 newworld/
 ## Non-static Minetest directories or symlinks to these
@@ -138,7 +139,9 @@ hacking_testing/vpt-minetest
 hacking_testing/videos
 *.model
 *.weights
-**/.ipynb_checkpoints/
+
+# Intermediate files
+hacking_testing/stab.py
 
 # Generated mod storage database
 client/mod_storage.sqlite
