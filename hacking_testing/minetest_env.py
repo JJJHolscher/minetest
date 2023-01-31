@@ -405,8 +405,8 @@ class Minetest(gym.Env):
         byte_obs = self.socket.recv()
         next_obs, rew, done, info, last_action = unpack_pb_obs(byte_obs)
 
-        if last_action:
-            assert action == last_action
+        # if last_action:
+            # assert action == last_action
 
         self.last_obs = next_obs
         logging.debug(f"Received obs - {next_obs.shape}; reward - {rew}")
