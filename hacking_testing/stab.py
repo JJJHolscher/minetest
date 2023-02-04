@@ -1,10 +1,12 @@
 import pickle
 import numpy as np
 from stable_baselines3.common.policies import ActorCriticPolicy
+from sb3_contrib.common.recurrent.policies import RecurrentActorCriticPolicy
 from gym.spaces import Dict as DictOAI, Box, Discrete, MultiDiscrete
-from gym.wrappers import Monitor, TimeLimit
+from gym.wrappers import Monitor, TimeLimit, FrameStack
 from minetest_env import Minetest
 from stable_baselines3 import PPO
+from sb3_contrib import RecurrentPPO
 from typing import Optional, Dict, Any, List, Tuple
 from stable_baselines3.common.distributions import (
     Distribution,
@@ -166,6 +168,7 @@ def make_env(
         env = DictToMultiDiscreteActionSpace(env, 
             action_transformer=action_transformer,
             action_mapper=action_mapper,)
+        env = FrameStack(env, 128)
         # env = HiddenStateObservationSpace(env, minerl_agent)
         # env = ObservationToCPU(env)
 
@@ -189,6 +192,7 @@ agent = MineRLAgent(
     pi_head_kwargs=pi_head_kwargs,
     show_agent_perspective=show_agent_pov,
 )
+# print(vars(agent).keys())
 # agent.load_weights(weights)
 agent_kwargs = dict(
     policy_kwargs=policy_kwargs,
@@ -291,12 +295,12 @@ class MinecraftActorCriticPolicy(ActorCriticPolicy):
         # Setup action and value heads
         self.action_net = self.minerl_agent.policy.pi_head
         self.value_net = self.minerl_agent.policy.value_head
-        print(self.minerl_agent)
+        # print(self.minerl_agent.policy)
 
         # Setup optimizer with initial learning rate
         self.optimizer = self.optimizer_class(
             self.
-            minerl_agent.policy.pi_head
+            minerl_agent.policy.net.img_process.cnn.stacks[0].firstconv  # .pi_head
             .parameters()
             , lr=lr_schedule(1), **self.optimizer_kwargs
         )
@@ -399,32 +403,18 @@ class MinecraftActorCriticPolicy(ActorCriticPolicy):
         :param obs:
         :return: the agent image observation, first input tensor and the hidden state
         """
-        print(obs)
 
-        img_obs = {"img": obs["img"]}
-        first_obs = obs["first"].bool()
-        state_in_obs = []
-
-        for i in range(len(self.minerl_agent.hidden_state)):
-            state_in1 = obs["state_in1"][:, i, :, :]
-            if torch.isnan(state_in1).all():
-                state_in1 = None
-            else:
-                state_in1 = state_in1.bool()
-
-            state_in_tuple = (
-                state_in1,
-                (obs["state_in2"][:, i, :, :], obs["state_in3"][:, i, :, :]),
-            )
-            state_in_obs.append(state_in_tuple)
-
-        return img_obs, first_obs, 
+        first = torch.zeros((obs.shape[0], 16)).to(self.minerl_agent.device)
+        first[:, 0] = 1
+        first = first.bool()
+        state = self.minerl_agent.policy.net.initial_state(obs.shape[0])
+        return {"img": obs}, first, state
 
 policy_kwargs = dict(minerl_agent=agent)  # **agent_kwargs)
 # ppo = PPO("CnnPolicy", venv, verbose=1, callback=WandbCallback())
 # ppo = PPO("CnnPolicy", venv, verbose=1, batch_size=4, n_steps=8)
 ppo = PPO(MinecraftActorCriticPolicy, venv, verbose=1, policy_kwargs=policy_kwargs,
-          batch_size=4, n_steps=8)
+          batch_size=2, n_steps=1)
 ppo.learn(total_timesteps=25000)
 
 # print("---Launching Minetest enviroment---")
