@@ -17,6 +17,7 @@ from gym_wrappers import (DictToMultiDiscreteActionSpace,
                           HiddenStateObservationSpace, ObservationToCPU,
                           ObservationToInfos)
 from stable_baselines3.common.type_aliases import Schedule
+import torch as th
 import torch
 import gym
 import gc
@@ -75,6 +76,21 @@ def _env_action_to_agent(self, minerl_action_transformed, action_transformer, ac
         action = {k: th.from_numpy(v).to(self.device) for k, v in action.items()}
     return action
 
+def _agent_action_to_env(agent_action, action_transformer, action_mapper):
+    """Turn output from policy into action for MineRL"""
+    # This is quite important step (for some reason).
+    # For the sake of your sanity, remember to do this step (manual conversion to numpy)
+    # before proceeding. Otherwise, your agent might be a little derp.
+    action = agent_action
+    if isinstance(action["buttons"], th.Tensor):
+        action = {
+            "buttons": agent_action["buttons"].cpu().numpy(),
+            "camera": agent_action["camera"].cpu().numpy()
+        }
+    minerl_action = action_mapper.to_factored(action)
+    minerl_action_transformed = action_transformer.policy2env(minerl_action)
+    return minerl_action_transformed
+
 class DictToMultiDiscreteActionSpace(gym.Wrapper):
     """Converts Dict to MultiDiscrete action space for MineRL envs"""
 
@@ -127,7 +143,7 @@ class DictToMultiDiscreteActionSpace(gym.Wrapper):
             action = action[np.newaxis, :]
         # transform array action to agent action to MineRL action
         agent_action = self.to_agent_action(action)
-        minerl_action = self.minerl_agent._agent_action_to_env(agent_action)
+        minerl_action = _agent_action_to_env(agent_action, self.action_transformer, self.action_mapper)
 
         # TODO implement policy that controls the remaining actions (especially ESC):
         minerl_action["ESC"] = np.array(0)
@@ -168,7 +184,7 @@ def make_env(
         env = DictToMultiDiscreteActionSpace(env, 
             action_transformer=action_transformer,
             action_mapper=action_mapper,)
-        env = FrameStack(env, 128)
+        env = FrameStack(env, 16)
         # env = HiddenStateObservationSpace(env, minerl_agent)
         # env = ObservationToCPU(env)
 
@@ -192,8 +208,11 @@ agent = MineRLAgent(
     pi_head_kwargs=pi_head_kwargs,
     show_agent_perspective=show_agent_pov,
 )
+from inspect import getsource
+print(getsource(agent._agent_action_to_env))
 # print(vars(agent).keys())
-# agent.load_weights(weights)
+agent.load_weights(weights)
+agent.policy.float()
 agent_kwargs = dict(
     policy_kwargs=policy_kwargs,
     pi_head_kwargs=pi_head_kwargs,
@@ -253,6 +272,7 @@ class MinecraftActorCriticPolicy(ActorCriticPolicy):
 
         self.ortho_init = False
 
+    # @torch.autocast("cuda")
     def forward(
         self, observation: Dict[str, torch.Tensor], deterministic: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -295,12 +315,12 @@ class MinecraftActorCriticPolicy(ActorCriticPolicy):
         # Setup action and value heads
         self.action_net = self.minerl_agent.policy.pi_head
         self.value_net = self.minerl_agent.policy.value_head
-        # print(self.minerl_agent.policy)
+        self.minerl_agent.policy
 
         # Setup optimizer with initial learning rate
         self.optimizer = self.optimizer_class(
             self.
-            minerl_agent.policy.net.img_process.cnn.stacks[0].firstconv  # .pi_head
+            minerl_agent.policy
             .parameters()
             , lr=lr_schedule(1), **self.optimizer_kwargs
         )
