@@ -3,6 +3,7 @@
 MINETESTER_VERSION := 0.0.1
 SDL2_CMAKE_FILE := lib/SDL/build/lib/cmake/SDL2/sdl2-config.cmake
 ZMQPP_LIB_FILE := lib/zmqpp/build/max-g++/libzmqpp.a
+LUA_PB := lib/lua_protobuf/pb.so
 MINETEST_BINARY := bin/minetest
 DEBUG_BINARY := bin/minetest_debug
 MINETESTER_WHEEL := build/package/wheel/minetester-$(MINETESTER_VERSION)-py3-none-any.whl
@@ -37,6 +38,11 @@ $(ZMQPP_LIB_FILE):
 	util/minetester/build_zmqpp.sh
 
 zmqpp: $(ZMQPP_LIB_FILE)
+
+$(LUA_PB):
+	util/minetester/build_lua_protobuf.sh
+
+lua_proto: $(LUA_PB)
 
 
 $(MINETEST_BINARY):

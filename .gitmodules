@@ -11,3 +11,6 @@
 [submodule "lib/SDL"]
 	path = lib/SDL
 	url = https://github.com/libsdl-org/SDL
+[submodule "lib/lua_protobuf"]
+	path = lib/lua_protobuf
+	url = https://github.com/starwing/lua-protobuf
